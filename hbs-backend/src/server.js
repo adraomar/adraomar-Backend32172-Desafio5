@@ -1,9 +1,9 @@
 const express = require("express");
 const handlebars = require("express-handlebars");
 const path = require("path");
-const Contenedor = require("./managers/contenedorProductos")
+const Contenedor = require("./managers/contenedorProductos");
 
-const prodService = new Contenedor("./files/productos.txt");
+const prodService = new Contenedor("productos.txt");
 
 const viewsFolder = path.join(__dirname, "views");
 
@@ -42,7 +42,14 @@ app.get("/usuarios", (req, res) => {
 
 app.post("/productos", async (req, res) => {
     const newProducto = req.body;
-
+    console.log(newProducto);
     await prodService.save(newProducto);
     res.redirect("/");
+})
+
+app.get("/productos", async (req, res) => {
+    const productos = await prodService.getAll();
+    res.render("productos", {
+        productos: productos
+    });
 })

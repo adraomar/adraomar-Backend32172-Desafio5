@@ -1,78 +1,89 @@
-const fs = require('fs');
+const fs = require("fs");
 
-class Contenedor {
-    constructor(name) {
-        this.filename = name;
+class Contenedor{
+    constructor(nameFile){
+        this.nameFile = nameFile;
     }
 
-    async getAll() {
-
+    save = async(product)=>{
         try {
-            const contenido = await fs.promises.readFile(this.filename, "UTF-8");
-            if(contenido.length > 0) {
-                const productos = JSON.parse(contenido);
+            //leer el archivo existe
+            if(fs.existsSync(this.nameFile)){
+                const productos = await this.getAll();
+                const lastIdAdded = productos.reduce((acc,item)=>item.id > acc ? acc = item.id : acc, 0);
+                const newProduct={
+                    id: lastIdAdded+1,
+                    ...product
+                }
+                productos.push(newProduct);
+                await fs.promises.writeFile(this.nameFile, JSON.stringify(productos, null, 2))
                 return productos;
-            }
-
-            return "Archivo vacío";
-        } catch (error) {
-            return "El archivo no puede ser leído";
-        }
-    }
-
-    async save(product) {
-        try {
-            const productos = await this.getAll();
-            if(productos.length > 0) {
-               const lastId = productos[productos.length - 1].id + 1;
-               product.id = lastId;
-               productos.push(product);
-               await fs.promises.writeFile(this.filename, JSON.stringify(productos, null, 2));
-            } else {
-                product.id = 1;
-                await fs.promises.writeFile(this.filename, JSON.stringify(product, null, 2));
+            } else{
+                // si el archivo no existe
+                const newProduct={
+                    id:1,
+                    ...product
+                }
+                //creamos el archivo
+                await fs.promises.writeFile(this.nameFile, JSON.stringify([newProduct], null, 2));
             }
         } catch (error) {
-            return "El producto no pudo ser guardado";
+            console.log(error);
         }
     }
 
-    getName() {
-        return this.filename;
-    }
-
-    async getById(id) {
+    getById = async(id)=>{
         try {
-            const productos = await this.getAll();
-            // Buscar producto por el id
-            const producto = productos.find((elemento) => elemento.id === id);
-            return producto;
-        } catch (error) {
-            return "El producto no se encuentra";
-        }
-    }
-
-    async deleteById(id) {
-        try {
-            const productos = await this.getAll();
-            const newProductos = productos.filter((elemento) => elemento.id !== id);
-            
-            if(newProductos) {
-                await fs.promises.writeFile(this.filename, JSON.stringify(newProductos, null, 2));
-                return `El producto id ${id} ha sido eliminado`;
+            if(fs.existsSync(this.nameFile)){
+                const productos = await this.getAll();
+                const producto = productos.find(item=>item.id===id);
+                return producto
             }
-            return `No se ha encontrado el producto id ${id} por lo tanto no pudo ser eliminado`;
         } catch (error) {
-            return "El elemento no puede ser eliminado";
+            console.log(error)
         }
     }
 
-    async deleteAll() {
+    getAll = async()=>{
         try {
-            await fs.promises.writeFile(this.filename, "");
-            return "Todos los productos fueron eliminados correctamente";
+            const contenido = await fs.promises.readFile(this.nameFile,"utf8");
+            const productos = JSON.parse(contenido);
+            return productos
         } catch (error) {
-            return "No se pudieron eliminar los elementos";
+            console.log(error)
+        }
+    }
+
+    deleteById = async(id)=>{
+        try {
+            const productos = await this.getAll();
+            const newProducts = productos.filter(item=>item.id!==id);
+            await fs.promises.writeFile(this.nameFile, JSON.stringify(newProducts, null, 2));
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    deleteAll = async()=>{
+        try {
+            await fs.promises.writeFile(this.nameFile, JSON.stringify([]));
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    updateById = async(id, body)=>{
+        try {
+            const productos = await this.getAll();
+            const productPos = productos.findIndex(elm=>elm.id === id);
+            productos[productPos] = {
+                id:id,
+                ...body
+            };
+            await fs.promises.writeFile(this.nameFile, JSON.stringify(productos, null, 2))
+            return productos;
+        } catch (error) {
+            console.log(error)
         }
     }
 }
